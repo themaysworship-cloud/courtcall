@@ -25,9 +25,9 @@ export function startOfWeek(d: Date): Date {
   return c;
 }
 
-/** Sunday through the following Sunday: 8 days. */
+/** Monday through Saturday after the given Sunday (no Sunday play). */
 export function weekDays(sunday: Date): Date[] {
-  return Array.from({ length: 8 }, (_, i) => addDays(sunday, i));
+  return Array.from({ length: 6 }, (_, i) => addDays(sunday, i + 1));
 }
 
 export function formatTime(t: string | null): string {

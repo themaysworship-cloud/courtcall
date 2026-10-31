@@ -2,7 +2,7 @@
 
 A phone-friendly web app for a pickleball group:
 
-- **Courts**: a Sunday to Sunday week of the 5–7am court time. Tap **In** or **Out** for each day and see how many are playing, who is out, and who has not answered. Change the time in `lib/config.ts`.
+- **Courts**: Monday through Saturday, the 5–7am court time. Tap **In** or **Out** for each day and see how many are playing, who is out, and who has not answered. Change the time in `lib/config.ts`.
 - **Chat**: a live group chat, plus a separate chat for each court time.
 - **Members**: everyone's photo, name, skill level and cell number, with one tap to text or call.
 - **Profile**: upload a profile photo and edit your details.

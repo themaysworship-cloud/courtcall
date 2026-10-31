@@ -164,6 +164,10 @@ export default function WeekPage() {
           </section>
         );
       })}
+
+      <button className="btn ghost full" onClick={() => setSunday(addDays(sunday, 7))}>
+        Next week ›
+      </button>
     </main>
   );
 }
