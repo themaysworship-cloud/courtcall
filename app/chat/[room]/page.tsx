@@ -6,8 +6,9 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/AuthProvider";
 import { Avatar } from "@/components/Avatar";
-import type { Message, Session } from "@/lib/types";
-import { dayLabel, formatTime, fromISODate, messageTime, toISODate } from "@/lib/dates";
+import type { Message } from "@/lib/types";
+import { COURT_TIME_LABEL } from "@/lib/config";
+import { dayLabel, fromISODate, messageTime, toISODate } from "@/lib/dates";
 
 const GROUP_GAP_MS = 5 * 60 * 1000;
 
@@ -16,8 +17,7 @@ export default function ChatPage() {
   const { auth, members } = useAuth();
   const myId = auth!.user.id;
   const [messages, setMessages] = useState<Message[]>([]);
-  const [session, setSession] = useState<Session | null>(null);
-  const [upcoming, setUpcoming] = useState<Session[]>([]);
+  const [upcoming, setUpcoming] = useState<string[]>([]); // dates I'm in for
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,27 +50,17 @@ export default function ChatPage() {
       })
       .subscribe();
 
-    if (room !== "general") {
+    if (room === "general") {
+      // Day chats for the days ahead that I've said I'm in for.
       supabase
-        .from("sessions")
-        .select("*")
-        .eq("id", room)
-        .single()
-        .then(({ data }) => alive && setSession(data as Session));
-    } else {
-      // Court chats for the days ahead that I'm signed up for.
-      supabase
-        .from("signups")
-        .select("session_id, sessions!inner(*)")
+        .from("day_rsvps")
+        .select("play_date")
         .eq("user_id", myId)
-        .gte("sessions.play_date", toISODate(new Date()))
-        .then(({ data }) => {
-          if (!alive) return;
-          const list = (data ?? [])
-            .map((r) => (r as unknown as { sessions: Session }).sessions)
-            .sort((a, b) => (a.play_date + a.start_time).localeCompare(b.play_date + b.start_time));
-          setUpcoming(list.slice(0, 6));
-        });
+        .eq("status", "in")
+        .gte("play_date", toISODate(new Date()))
+        .order("play_date")
+        .limit(6)
+        .then(({ data }) => alive && setUpcoming((data ?? []).map((r) => r.play_date as string)));
     }
 
     return () => {
@@ -109,12 +99,8 @@ export default function ChatPage() {
     setMessages((prev) => prev.filter((x) => x.id !== m.id));
   }
 
-  const title =
-    room === "general"
-      ? "Group chat"
-      : session
-        ? `${dayLabel(fromISODate(session.play_date))} · ${formatTime(session.start_time)}`
-        : "Court chat";
+  const dayDate = room.startsWith("day-") ? room.slice(4) : null;
+  const title = room === "general" ? "Group chat" : dayDate ? dayLabel(fromISODate(dayDate)) : "Court chat";
 
   return (
     <main className="chat">
@@ -126,16 +112,16 @@ export default function ChatPage() {
         )}
         <div>
           <h1>{title}</h1>
-          {session?.location && <span className="muted small">📍 {session.location}</span>}
+          {dayDate && <span className="muted small">{COURT_TIME_LABEL} court chat</span>}
           {room === "general" && <span className="muted small">Everyone in the group</span>}
         </div>
       </header>
 
       {room === "general" && upcoming.length > 0 && (
         <div className="chips">
-          {upcoming.map((s) => (
-            <Link key={s.id} href={`/chat/${s.id}`} className="chip">
-              {fromISODate(s.play_date).toLocaleDateString(undefined, { weekday: "short" })} {formatTime(s.start_time)}
+          {upcoming.map((d) => (
+            <Link key={d} href={`/chat/day-${d}`} className="chip">
+              {fromISODate(d).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
             </Link>
           ))}
         </div>

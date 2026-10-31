@@ -157,3 +157,20 @@ input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--green); 
 .composer textarea { flex: 1; resize: none; border-radius: 20px; padding: 10px 14px; max-height: 120px; field-sizing: content; }
 .send { width: 42px; height: 42px; border-radius: 50%; border: 0; background: var(--green); color: white; font-size: 1.1rem; cursor: pointer; flex-shrink: 0; }
 .send:disabled { background: #b9cbbf; }
+
+/* Daily opt in */
+.form small { margin: 0; font-weight: 500; }
+.optin { margin-bottom: 0; }
+.optin-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.optin-count { text-align: center; min-width: 76px; background: #eaf5ee; color: var(--green); border-radius: 14px; padding: 6px 10px; display: flex; flex-direction: column; }
+.optin-count strong { font-size: 1.6rem; line-height: 1.1; }
+.optin-count small { font-size: .72rem; font-weight: 600; color: var(--muted); }
+.optin-count.zero { background: #f1f3f0; color: var(--muted); }
+.inout { display: flex; gap: 10px; margin-top: 14px; }
+.inout button { flex: 1; padding: 13px; border-radius: 14px; font-weight: 800; font-size: 1.05rem; cursor: pointer; border: 2px solid var(--line); background: white; color: var(--text); }
+.inout button.in.on { background: var(--green); border-color: var(--green); color: white; }
+.inout button.out.on { background: #fdeaea; border-color: #f3b4b4; color: var(--danger); }
+.inout button:disabled { cursor: default; opacity: .6; }
+.who-line { font-size: .85rem; color: var(--muted); margin-top: 10px; }
+.who-line b { color: var(--text); font-weight: 600; }
+.day-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }

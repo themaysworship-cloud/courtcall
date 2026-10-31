@@ -7,6 +7,7 @@ export default function LoginPage() {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [busy, setBusy] = useState(false);
@@ -18,6 +19,11 @@ export default function LoginPage() {
     setBusy(true);
     setError(null);
     setNotice(null);
+    if (mode === "signup" && password !== confirm) {
+      setError("Passwords don't match. Please type them again.");
+      setBusy(false);
+      return;
+    }
     if (mode === "signin") {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) setError(error.message);
@@ -47,7 +53,14 @@ export default function LoginPage() {
           <button type="button" className={mode === "signin" ? "on" : ""} onClick={() => setMode("signin")}>
             Sign in
           </button>
-          <button type="button" className={mode === "signup" ? "on" : ""} onClick={() => setMode("signup")}>
+          <button
+            type="button"
+            className={mode === "signup" ? "on" : ""}
+            onClick={() => {
+              setMode("signup");
+              setConfirm("");
+            }}
+          >
             Create account
           </button>
         </div>
@@ -87,6 +100,25 @@ export default function LoginPage() {
             autoComplete={mode === "signin" ? "current-password" : "new-password"}
           />
         </label>
+        {mode === "signup" && (
+          <label>
+            Confirm password
+            <input
+              required
+              type="password"
+              minLength={6}
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              autoComplete="new-password"
+              aria-invalid={confirm.length > 0 && confirm !== password}
+            />
+            {confirm.length > 0 && (
+              <small className={confirm === password ? "notice" : "error"}>
+                {confirm === password ? "✓ Passwords match" : "Passwords don't match yet"}
+              </small>
+            )}
+          </label>
+        )}
 
         {error && <p className="error">{error}</p>}
         {notice && <p className="notice">{notice}</p>}

@@ -27,3 +27,10 @@ export type Message = {
   body: string;
   created_at: string;
 };
+
+export type DayRsvp = {
+  play_date: string; // YYYY-MM-DD
+  user_id: string;
+  status: "in" | "out";
+  updated_at: string;
+};
