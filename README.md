@@ -25,4 +25,4 @@ Optional: in **Authentication → Providers → Email**, turn off "Confirm email
 
 ## Deploy
 
-Push this repo to GitHub, import it at [vercel.com](https://vercel.com), add the same two environment variables, and deploy. Then add the Vercel URL under Supabase **Authentication → URL Configuration → Site URL**.
+Import this repo at [vercel.com](https://vercel.com) (Add New → Project), open the Environment Variables section on the Configure Project screen, add the same two variables, and click Deploy. Every push to `main` redeploys automatically; if you change a variable later, redeploy from the Deployments tab. Then add the Vercel URL under Supabase **Authentication → URL Configuration → Site URL**.
