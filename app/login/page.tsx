@@ -38,7 +38,7 @@ export default function LoginPage() {
       <div className="brand">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/icon.svg" alt="" width={72} height={72} />
-        <h1>Dink</h1>
+        <h1>Court Call</h1>
         <p className="muted">Court signups and chat for your pickleball group</p>
       </div>
 

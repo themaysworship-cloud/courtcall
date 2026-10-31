@@ -4,10 +4,10 @@ import { AuthProvider } from "@/components/AuthProvider";
 import { AppShell } from "@/components/AppShell";
 
 export const metadata: Metadata = {
-  title: "Dink",
+  title: "Court Call",
   description: "Court signups and chat for your pickleball group",
   manifest: "/manifest.webmanifest",
-  appleWebApp: { capable: true, title: "Dink", statusBarStyle: "default" },
+  appleWebApp: { capable: true, title: "Court Call", statusBarStyle: "default" },
   icons: { icon: "/icon.svg", apple: "/icon.svg" },
 };
 

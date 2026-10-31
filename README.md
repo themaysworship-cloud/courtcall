@@ -1,4 +1,4 @@
-# Dink: pickleball court signups and group chat
+# Court Call: pickleball court signups and group chat
 
 A phone-friendly web app for a pickleball group:
 
