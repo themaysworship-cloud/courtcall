@@ -52,6 +52,9 @@ export default function WeekPage() {
   }, [loaded]);
 
   async function setStatus(date: string, status: "in" | "out") {
+    const current = rsvps.find((r) => r.play_date === date && r.user_id === myId)?.status;
+    // Tapping the same answer again must not move you to the back of the line.
+    if (current === status) return;
     setError(null);
     // Show the change right away, then save it.
     setRsvps((prev) => [
@@ -142,14 +145,19 @@ export default function WeekPage() {
               )}
 
               {ins.length > 0 && (
-                <div className="roster">
-                  {ins.map((r) => (
-                    <Link key={r.user_id} href={`/members?u=${r.user_id}`} className="roster-item">
-                      <Avatar profile={members[r.user_id]} size={36} />
-                      <span>{firstName(r.user_id)}</span>
+                <PlayerList
+                  ins={ins.map((r) => r.user_id)}
+                  past={past}
+                  render={(id, n) => (
+                    <Link key={id} href={`/members?u=${id}`} className="roster-item">
+                      <span className="order-wrap">
+                        <Avatar profile={members[id]} size={36} />
+                        <span className="order">{n}</span>
+                      </span>
+                      <span>{firstName(id)}</span>
                     </Link>
-                  ))}
-                </div>
+                  )}
+                />
               )}
 
               {!past && (
@@ -217,5 +225,43 @@ function CourtStatus({ count, past }: { count: number; past: boolean }) {
     <p className={`court-status ${need === 1 ? "close" : ""}`}>
       {count} in · <strong>need {need} more</strong> to fill court {next}
     </p>
+  );
+}
+
+/** First come, first served: the earliest players fill full courts; the rest wait for the next court to fill. */
+function PlayerList({
+  ins,
+  past,
+  render,
+}: {
+  ins: string[];
+  past: boolean;
+  render: (id: string, n: number) => React.ReactNode;
+}) {
+  const onCourt = Math.floor(ins.length / COURT_SIZE) * COURT_SIZE;
+  const playing = ins.slice(0, onCourt);
+  const waiting = ins.slice(onCourt);
+  const need = COURT_SIZE - waiting.length;
+  return (
+    <div className="players">
+      {playing.length > 0 && (
+        <div className="player-group">
+          <div className="group-label on">
+            {past ? "Played" : "On a full court"} · {playing.length}
+          </div>
+          <div className="roster">{playing.map((id, i) => render(id, i + 1))}</div>
+        </div>
+      )}
+      {waiting.length > 0 && (
+        <div className="player-group">
+          <div className="group-label wait">
+            {past
+              ? "Signed up, court didn't fill"
+              : `Waiting · ${need} more to fill court ${onCourt / COURT_SIZE + 1}`}
+          </div>
+          <div className="roster">{waiting.map((id, i) => render(id, onCourt + i + 1))}</div>
+        </div>
+      )}
+    </div>
   );
 }

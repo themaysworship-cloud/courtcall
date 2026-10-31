@@ -189,3 +189,12 @@ input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--green); 
 .court-label { font-size: .75rem; font-weight: 700; color: var(--muted); margin-top: 6px; }
 .court.full .court-label { color: var(--green); }
 .day.past .pip.on { background: #8fb7a0; }
+
+/* First come, first served list */
+.players { margin-top: 12px; display: flex; flex-direction: column; gap: 10px; }
+.player-group .roster { margin-top: 6px; }
+.group-label { font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
+.group-label.on { color: var(--green); }
+.group-label.wait { color: #b7791f; }
+.order-wrap { position: relative; display: inline-block; }
+.order { position: absolute; top: -7px; left: -9px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; background: var(--text); color: #fff; font-size: .65rem; font-weight: 800; display: grid; place-items: center; box-shadow: 0 0 0 2px #fff; }
