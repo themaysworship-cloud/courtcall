@@ -174,3 +174,22 @@ input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--green); 
 .who-line { font-size: .85rem; color: var(--muted); margin-top: 10px; }
 .who-line b { color: var(--text); font-weight: 600; }
 .day-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+
+/* Courts of 4 */
+.court-status { margin: 12px 0 4px; font-size: .95rem; color: var(--text); }
+.court-status strong { color: var(--green); }
+.court-status.close strong { color: #b7791f; }
+.court-status.done { color: var(--muted); }
+.courts { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-top: 10px; }
+.court { border-radius: 14px; background: #eef5ec; padding: 8px; }
+.court.full { background: #dcefe2; }
+.court-label { display: flex; justify-content: space-between; font-size: .75rem; font-weight: 700; color: var(--muted); margin: 0 4px 6px; text-transform: uppercase; letter-spacing: .04em; }
+.court.full .court-label { color: var(--green); }
+.court-surface { position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 4px; background: #2f8a5c; border: 2px solid #fff; border-radius: 8px; padding: 8px 4px; }
+.court-net { position: absolute; left: 50%; top: 4px; bottom: 4px; width: 2px; margin-left: -1px; background: rgba(255,255,255,.85); }
+.slot { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: .7rem; color: #fff; font-weight: 600; min-width: 0; z-index: 1; }
+.slot span:last-child { max-width: 64px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.slot.filled .avatar { box-shadow: 0 0 0 2px #fff; }
+.slot.open { opacity: .8; }
+.slot-dot { width: 40px; height: 40px; border-radius: 50%; border: 2px dashed rgba(255,255,255,.8); display: grid; place-items: center; font-size: 1.2rem; }
+.day.past .court-surface { background: #8fb7a0; }

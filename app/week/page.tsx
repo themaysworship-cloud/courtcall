@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/AuthProvider";
 import { Avatar } from "@/components/Avatar";
 import type { DayRsvp } from "@/lib/types";
-import { COURT_TIME_LABEL } from "@/lib/config";
+import { COURT_SIZE, COURT_TIME_LABEL } from "@/lib/config";
 import { addDays, dayLabel, rangeLabel, startOfWeek, toISODate, weekDays } from "@/lib/dates";
 
 export default function WeekPage() {
@@ -117,20 +117,43 @@ export default function WeekPage() {
                   <div className="muted small">{COURT_TIME_LABEL}</div>
                 </div>
                 <div className={`optin-count ${ins.length === 0 ? "zero" : ""}`}>
-                  <strong>{ins.length}</strong>
-                  <small>{past ? "played" : "in"}</small>
+                  <strong>{Math.floor(ins.length / COURT_SIZE)}</strong>
+                  <small>{Math.floor(ins.length / COURT_SIZE) === 1 ? "court" : "courts"} full</small>
                 </div>
               </div>
 
-              {ins.length > 0 && (
-                <div className="roster">
-                  {ins.map((r) => (
-                    <Link key={r.user_id} href={`/members?u=${r.user_id}`} className="roster-item">
-                      <Avatar profile={members[r.user_id]} size={36} />
-                      <span>{firstName(r.user_id)}</span>
-                    </Link>
-                  ))}
-                </div>
+              <CourtStatus count={ins.length} past={past} />
+
+              {(!past || ins.length > 0) && (
+              <div className="courts">
+                {courtsFor(ins.map((r) => r.user_id)).map((players, i) => (
+                  <div key={i} className={`court ${players.length === COURT_SIZE ? "full" : ""}`}>
+                    <div className="court-label">
+                      Court {i + 1}
+                      <span>
+                        {players.length}/{COURT_SIZE}
+                      </span>
+                    </div>
+                    <div className="court-surface">
+                      {Array.from({ length: COURT_SIZE }, (_, slot) => {
+                        const id = players[slot];
+                        return id ? (
+                          <Link key={slot} href={`/members?u=${id}`} className="slot filled">
+                            <Avatar profile={members[id]} size={40} />
+                            <span>{firstName(id)}</span>
+                          </Link>
+                        ) : (
+                          <div key={slot} className="slot open">
+                            <span className="slot-dot">+</span>
+                            <span>Open</span>
+                          </div>
+                        );
+                      })}
+                      <div className="court-net" />
+                    </div>
+                  </div>
+                ))}
+              </div>
               )}
 
               {!past && (
@@ -169,5 +192,34 @@ export default function WeekPage() {
         Next week ›
       </button>
     </main>
+  );
+}
+
+/** Split players (in signup order) into courts of COURT_SIZE, always showing one court with open spots. */
+function courtsFor(ids: string[]): string[][] {
+  const courts: string[][] = [];
+  for (let i = 0; i < ids.length; i += COURT_SIZE) courts.push(ids.slice(i, i + COURT_SIZE));
+  if (courts.length === 0 || courts[courts.length - 1].length === COURT_SIZE) courts.push([]);
+  return courts;
+}
+
+function CourtStatus({ count, past }: { count: number; past: boolean }) {
+  const full = Math.floor(count / COURT_SIZE);
+  const need = COURT_SIZE - (count % COURT_SIZE);
+  const next = full + 1;
+  if (past) {
+    return (
+      <p className="court-status done">
+        {count === 0 ? "Nobody played" : `${count} played · ${full} full ${full === 1 ? "court" : "courts"}`}
+      </p>
+    );
+  }
+  if (count === 0) {
+    return <p className="court-status">Need {COURT_SIZE} to fill the first court</p>;
+  }
+  return (
+    <p className={`court-status ${need === 1 ? "close" : ""}`}>
+      {count} in · <strong>need {need} more</strong> to fill court {next}
+    </p>
   );
 }
