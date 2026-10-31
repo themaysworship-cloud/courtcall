@@ -125,35 +125,31 @@ export default function WeekPage() {
               <CourtStatus count={ins.length} past={past} />
 
               {(!past || ins.length > 0) && (
-              <div className="courts">
-                {courtsFor(ins.map((r) => r.user_id)).map((players, i) => (
-                  <div key={i} className={`court ${players.length === COURT_SIZE ? "full" : ""}`}>
-                    <div className="court-label">
-                      Court {i + 1}
-                      <span>
-                        {players.length}/{COURT_SIZE}
-                      </span>
+                <div className="courts">
+                  {courtsFor(ins.length).map((filled, i) => (
+                    <div key={i} className={`court ${filled === COURT_SIZE ? "full" : ""}`}>
+                      <div className="court-pips">
+                        {Array.from({ length: COURT_SIZE }, (_, k) => (
+                          <span key={k} className={k < filled ? "pip on" : "pip"} />
+                        ))}
+                      </div>
+                      <div className="court-label">
+                        Court {i + 1} · {filled === COURT_SIZE ? "full" : `${filled}/${COURT_SIZE}`}
+                      </div>
                     </div>
-                    <div className="court-surface">
-                      {Array.from({ length: COURT_SIZE }, (_, slot) => {
-                        const id = players[slot];
-                        return id ? (
-                          <Link key={slot} href={`/members?u=${id}`} className="slot filled">
-                            <Avatar profile={members[id]} size={40} />
-                            <span>{firstName(id)}</span>
-                          </Link>
-                        ) : (
-                          <div key={slot} className="slot open">
-                            <span className="slot-dot">+</span>
-                            <span>Open</span>
-                          </div>
-                        );
-                      })}
-                      <div className="court-net" />
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
+
+              {ins.length > 0 && (
+                <div className="roster">
+                  {ins.map((r) => (
+                    <Link key={r.user_id} href={`/members?u=${r.user_id}`} className="roster-item">
+                      <Avatar profile={members[r.user_id]} size={36} />
+                      <span>{firstName(r.user_id)}</span>
+                    </Link>
+                  ))}
+                </div>
               )}
 
               {!past && (
@@ -195,11 +191,11 @@ export default function WeekPage() {
   );
 }
 
-/** Split players (in signup order) into courts of COURT_SIZE, always showing one court with open spots. */
-function courtsFor(ids: string[]): string[][] {
-  const courts: string[][] = [];
-  for (let i = 0; i < ids.length; i += COURT_SIZE) courts.push(ids.slice(i, i + COURT_SIZE));
-  if (courts.length === 0 || courts[courts.length - 1].length === COURT_SIZE) courts.push([]);
+/** How many spots are taken on each court, always ending with a court that has open spots. */
+function courtsFor(count: number): number[] {
+  const courts: number[] = [];
+  for (let left = count; left > 0; left -= COURT_SIZE) courts.push(Math.min(left, COURT_SIZE));
+  if (courts.length === 0 || courts[courts.length - 1] === COURT_SIZE) courts.push(0);
   return courts;
 }
 
