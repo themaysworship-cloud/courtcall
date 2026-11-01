@@ -107,7 +107,7 @@ export async function POST(req: Request) {
   const messages = [
     ...toFull.map((user_id) => ({
       user_id,
-      title: "You're on a full court 🎾",
+      title: "You're on a full court!",
       body: `${day}, ${COURT_TIME_LABEL}. See you there!`,
     })),
     ...toBumped.map((user_id) => ({
