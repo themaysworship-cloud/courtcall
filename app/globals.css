@@ -198,3 +198,10 @@ input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--green); 
 .group-label.wait { color: #b7791f; }
 .order-wrap { position: relative; display: inline-block; }
 .order { position: absolute; top: -7px; left: -9px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; background: var(--text); color: #fff; font-size: .65rem; font-weight: 800; display: grid; place-items: center; box-shadow: 0 0 0 2px #fff; }
+
+/* Notifications */
+.notif { margin-top: 16px; }
+.notif-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.notif .notice, .notif p { margin: 10px 0 0; }
+
+.alert-banner { display: block; background: #fff8e1; border: 1px solid #f3dd9b; color: #7a5b00; font-weight: 600; font-size: .9rem; padding: 10px 14px; border-radius: 12px; margin: 4px 0 8px; }

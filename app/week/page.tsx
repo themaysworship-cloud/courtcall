@@ -7,6 +7,8 @@ import { useAuth } from "@/components/AuthProvider";
 import { Avatar } from "@/components/Avatar";
 import type { DayRsvp } from "@/lib/types";
 import { COURT_SIZE, COURT_TIME_LABEL } from "@/lib/config";
+import { onFullCourt } from "@/lib/courts";
+import { getPushState, reportCourtChange, type PushState } from "@/lib/push";
 import { addDays, dayLabel, rangeLabel, startOfWeek, toISODate, weekDays } from "@/lib/dates";
 
 export default function WeekPage() {
@@ -17,6 +19,11 @@ export default function WeekPage() {
   const [error, setError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const todayRef = useRef<HTMLElement>(null);
+  const [push, setPush] = useState<PushState | null>(null);
+
+  useEffect(() => {
+    getPushState().then(setPush);
+  }, []);
 
   const days = useMemo(() => weekDays(sunday), [sunday]);
   const from = toISODate(days[0]);
@@ -65,6 +72,7 @@ export default function WeekPage() {
       .from("day_rsvps")
       .upsert({ play_date: date, user_id: myId, status, updated_at: new Date().toISOString() });
     if (error) setError(error.message);
+    else reportCourtChange(date, current === "in" && status === "out");
     load();
   }
 
@@ -93,6 +101,11 @@ export default function WeekPage() {
         </button>
       )}
       {error && <p className="error">{error}</p>}
+      {(push === "off" || push === "needs-install") && (
+        <Link href="/profile" className="alert-banner">
+          🔔 Turn on court alerts so you know when your court fills →
+        </Link>
+      )}
 
       {days.map((d) => {
         const iso = toISODate(d);
@@ -238,8 +251,8 @@ function PlayerList({
   past: boolean;
   render: (id: string, n: number) => React.ReactNode;
 }) {
-  const onCourt = Math.floor(ins.length / COURT_SIZE) * COURT_SIZE;
-  const playing = ins.slice(0, onCourt);
+  const playing = onFullCourt(ins);
+  const onCourt = playing.length;
   const waiting = ins.slice(onCourt);
   const need = COURT_SIZE - waiting.length;
   return (

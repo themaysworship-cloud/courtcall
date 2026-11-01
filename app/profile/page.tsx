@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/AuthProvider";
 import { Avatar } from "@/components/Avatar";
+import { NotificationsCard } from "@/components/NotificationsCard";
 
 const LEVELS = ["Beginner", "2.5", "3.0", "3.5", "4.0", "4.5", "5.0+"];
 
@@ -106,6 +107,8 @@ export default function ProfilePage() {
           Save
         </button>
       </form>
+
+      <NotificationsCard userId={auth!.user.id} />
 
       <button className="btn ghost danger full" onClick={() => supabase.auth.signOut()}>
         Sign out
