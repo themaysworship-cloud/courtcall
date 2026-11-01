@@ -5,6 +5,7 @@ export type Profile = {
   avatar_url: string | null;
   skill_level: string | null;
   bio: string | null;
+  chat_alerts?: boolean;
 };
 
 export type Session = {
@@ -25,8 +26,11 @@ export type Message = {
   room: string;
   user_id: string;
   body: string;
+  image_url?: string | null;
   created_at: string;
 };
+
+export type Reaction = { message_id: number; user_id: string; emoji: string };
 
 export type DayRsvp = {
   play_date: string; // YYYY-MM-DD

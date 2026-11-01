@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/AuthProvider";
 import { Avatar } from "@/components/Avatar";
 import { NotificationsCard } from "@/components/NotificationsCard";
+import { shrinkImage } from "@/lib/image";
 
 const LEVELS = ["Beginner", "2.5", "3.0", "3.5", "4.0", "4.5", "5.0+"];
 
@@ -42,7 +43,7 @@ export default function ProfilePage() {
     setBusy(true);
     setStatus("Uploading photo…");
     // Phone photos are several MB; shrink to a small square so everyone's list loads fast.
-    const small = await shrinkPhoto(file).catch(() => null);
+    const small = await shrinkImage(file, 320, true).catch(() => null);
     const upload = small ?? file;
     const ext = small ? "jpg" : file.name.split(".").pop()?.toLowerCase() || "jpg";
     const path = `${auth!.user.id}/${Date.now()}.${ext}`;
@@ -119,20 +120,5 @@ export default function ProfilePage() {
         Sign out
       </button>
     </main>
-  );
-}
-
-/** Center-crop to a square and resize to 320px JPEG (about 20–40 KB). */
-async function shrinkPhoto(file: File): Promise<Blob> {
-  const bitmap = await createImageBitmap(file);
-  const side = Math.min(bitmap.width, bitmap.height);
-  const size = Math.min(320, side);
-  const canvas = document.createElement("canvas");
-  canvas.width = canvas.height = size;
-  const ctx = canvas.getContext("2d")!;
-  ctx.drawImage(bitmap, (bitmap.width - side) / 2, (bitmap.height - side) / 2, side, side, 0, 0, size, size);
-  bitmap.close();
-  return await new Promise<Blob>((resolve, reject) =>
-    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("resize failed"))), "image/jpeg", 0.85),
   );
 }

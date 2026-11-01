@@ -2,11 +2,20 @@
 
 import { useEffect, useState } from "react";
 import { disablePush, enablePush, getPushState, type PushState } from "@/lib/push";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "./AuthProvider";
 
 export function NotificationsCard({ userId }: { userId: string }) {
   const [state, setState] = useState<PushState | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { me, refreshMembers } = useAuth();
+  const chatOn = me?.chat_alerts !== false;
+
+  async function setChat(on: boolean) {
+    await supabase.from("profiles").update({ chat_alerts: on }).eq("id", userId);
+    refreshMembers();
+  }
 
   useEffect(() => {
     getPushState().then(setState);
@@ -29,8 +38,10 @@ export function NotificationsCard({ userId }: { userId: string }) {
     <div className="card notif">
       <div className="notif-row">
         <div>
-          <strong>Court alerts</strong>
-          <div className="muted small">Get a notification when your court fills, or when someone drops out of a day you&apos;re in for.</div>
+          <strong>Notifications</strong>
+          <div className="muted small">
+            Court alerts when your court fills or someone drops out, plus new chat messages.
+          </div>
         </div>
         {(state === "on" || state === "off") && (
           <button className={`btn ${state === "on" ? "ghost" : "primary"}`} disabled={busy} onClick={toggle}>
@@ -38,7 +49,15 @@ export function NotificationsCard({ userId }: { userId: string }) {
           </button>
         )}
       </div>
-      {state === "on" && <p className="notice">✓ On for this device</p>}
+      {state === "on" && (
+        <>
+          <p className="notice">✓ On for this device</p>
+          <label className="check notif-chat">
+            <input type="checkbox" checked={chatOn} onChange={(e) => setChat(e.target.checked)} />
+            Also notify me about chat messages
+          </label>
+        </>
+      )}
       {state === "needs-install" && (
         <p className="small">
           On iPhone, first add Court Call to your home screen: tap the Share button, then <b>Add to Home Screen</b>. Open it

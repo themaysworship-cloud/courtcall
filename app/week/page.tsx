@@ -142,7 +142,7 @@ export default function WeekPage() {
       {error && <p className="error">{error}</p>}
       {(push === "off" || push === "needs-install") && (
         <Link href="/profile" className="alert-banner">
-          🔔 Turn on court alerts so you know when your court fills →
+          🔔 Turn on notifications for court updates and chat →
         </Link>
       )}
 

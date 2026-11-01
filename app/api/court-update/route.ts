@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import webpush from "web-push";
-import { adminClient, vapidKeys } from "@/lib/server";
+import { adminClient, requestUser, sendPush } from "@/lib/server";
 import { onFullCourt } from "@/lib/courts";
 import { COURT_SIZE, COURT_TIME_LABEL } from "@/lib/config";
 
@@ -22,10 +21,8 @@ export async function POST(req: Request) {
   }
 
   // Only signed-in members can trigger this.
-  const token = req.headers.get("authorization")?.replace(/^Bearer /, "");
-  const { data: who } = await admin.auth.getUser(token ?? "");
-  if (!who.user) return NextResponse.json({ error: "not signed in" }, { status: 401 });
-  const actor = who.user.id;
+  const actor = await requestUser(admin, req);
+  if (!actor) return NextResponse.json({ error: "not signed in" }, { status: 401 });
 
   const { data: rsvps } = await admin
     .from("day_rsvps")
@@ -90,10 +87,7 @@ export async function POST(req: Request) {
 
   if (!toFull.length && !toBumped.length && !toDropNotice.length) return NextResponse.json({ sent: 0 });
 
-  const keys = await vapidKeys(admin);
-  webpush.setVapidDetails(process.env.VAPID_SUBJECT || "mailto:courtcall@example.com", keys.publicKey, keys.privateKey);
-
-  const day = new Date(date + "T12:00:00").toLocaleDateString("en-US", {
+  const day = new Date(date + "T12:00:00Z").toLocaleDateString("en-US", {
     weekday: "long",
     month: "short",
     day: "numeric",
@@ -122,28 +116,9 @@ export async function POST(req: Request) {
     })),
   ];
 
-  const ids = [...new Set(messages.map((m) => m.user_id))];
-  const { data: subs } = await admin.from("push_subscriptions").select("*").in("user_id", ids);
-
-  let sent = 0;
-  await Promise.all(
-    messages.flatMap((m) =>
-      (subs ?? [])
-        .filter((s) => s.user_id === m.user_id)
-        .map(async (s) => {
-          try {
-            await webpush.sendNotification(
-              { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
-              JSON.stringify({ title: m.title, body: m.body, tag: `court-${date}`, url: "/week" }),
-            );
-            sent++;
-          } catch (err) {
-            const code = (err as { statusCode?: number }).statusCode;
-            // The phone unsubscribed or the app was removed: forget this device.
-            if (code === 404 || code === 410) await admin.from("push_subscriptions").delete().eq("endpoint", s.endpoint);
-          }
-        }),
-    ),
+  const sent = await sendPush(
+    admin,
+    messages.map((m) => ({ ...m, tag: `court-${date}`, url: "/week" })),
   );
 
   return NextResponse.json({ sent });

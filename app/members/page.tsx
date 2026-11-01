@@ -42,6 +42,7 @@ function Members() {
           <h1>Members</h1>
           <span className="muted">{Object.keys(members).length} in the group</span>
         </div>
+        <InviteButton />
       </header>
       <input className="search" placeholder="Search by name or number" value={q} onChange={(e) => setQ(e.target.value)} />
 
@@ -99,5 +100,35 @@ function ContactButtons({ profile, compact }: { profile: Profile; compact?: bool
         📞{compact ? "" : " Call"}
       </a>
     </div>
+  );
+}
+
+function InviteButton() {
+  const [copied, setCopied] = useState(false);
+  async function invite() {
+    const url = window.location.origin;
+    const text =
+      "Join our pickleball group on Court Call! Sign up for the 5–7am courts and chat with everyone. " +
+      "Open this link on your phone and it'll walk you through adding it to your home screen:";
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "Court Call", text, url });
+        return;
+      } catch (e) {
+        if ((e as Error).name === "AbortError") return;
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(`${text} ${url}`);
+    } catch {
+      window.prompt("Copy this invite:", `${text} ${url}`);
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  }
+  return (
+    <button className="btn primary invite" onClick={invite}>
+      {copied ? "✓ Copied" : "+ Invite"}
+    </button>
   );
 }

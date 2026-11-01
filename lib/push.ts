@@ -98,3 +98,15 @@ export async function reportCourtChange(date: string, dropped = false) {
     body: JSON.stringify({ date, dropped }),
   }).catch(() => {});
 }
+
+/** Ask the server to send alerts for a chat message I just sent. */
+export async function reportChatMessage(id: number) {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) return;
+  fetch("/api/chat-notify", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ id }),
+  }).catch(() => {});
+}
