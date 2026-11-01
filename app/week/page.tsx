@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/AuthProvider";
 import { Avatar } from "@/components/Avatar";
@@ -20,7 +20,8 @@ export default function WeekPage() {
     () => cached<DayRsvp[]>(`week:${toISODate(startOfWeek(new Date()))}`) ?? [],
   );
   const [error, setError] = useState<string | null>(null);
-  const [loaded, setLoaded] = useState(false);
+  const [loaded, setLoaded] = useState(() => cached(`week:${toISODate(startOfWeek(new Date()))}`) !== undefined);
+  const scrolled = useRef(false);
   const todayRef = useRef<HTMLElement>(null);
   const [push, setPush] = useState<PushState | null>(null);
 
@@ -41,26 +42,45 @@ export default function WeekPage() {
       .lte("play_date", to)
       .order("updated_at");
     if (error) setError(error.message);
-    if (!error) setRsvps(remember(`week:${toISODate(sunday)}`, (data ?? []) as DayRsvp[]));
+    if (!error) setRsvps(remember(`week:${from}`, (data ?? []) as DayRsvp[]));
     setLoaded(true);
-  }, [from, to, sunday]);
+  }, [from, to]);
 
   useEffect(() => {
-    const hit = cached<DayRsvp[]>(`week:${toISODate(sunday)}`);
-    if (hit) setRsvps(hit);
+    setRsvps(cached<DayRsvp[]>(`week:${from}`) ?? []);
     load();
+    // Apply other people's taps as they happen, without reloading the whole week.
     const ch = supabase
       .channel(`rsvps-${from}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "day_rsvps" }, load)
-      .subscribe();
+      .on("postgres_changes", { event: "*", schema: "public", table: "day_rsvps" }, (p) => {
+        const row = (p.eventType === "DELETE" ? p.old : p.new) as DayRsvp;
+        if (!row?.play_date || row.play_date < from || row.play_date > to) return;
+        setRsvps((prev) => {
+          const rest = prev.filter((r) => !(r.play_date === row.play_date && r.user_id === row.user_id));
+          const next = p.eventType === "DELETE" ? rest : [...rest, row];
+          next.sort((a, b) => a.updated_at.localeCompare(b.updated_at));
+          return remember(`week:${from}`, next);
+        });
+      })
+      .subscribe((status) => {
+        // After a dropped connection (phone asleep, signal lost), catch up once.
+        if (status === "SUBSCRIBED") load();
+      });
+    // Coming back to the app after it was in the background: refresh.
+    const onShow = () => document.visibilityState === "visible" && load();
+    document.addEventListener("visibilitychange", onShow);
     return () => {
+      document.removeEventListener("visibilitychange", onShow);
       supabase.removeChannel(ch);
     };
-  }, [from, load, sunday]);
+  }, [from, to, load]);
 
-  // Open on today instead of days that already happened.
-  useEffect(() => {
-    if (loaded) todayRef.current?.scrollIntoView({ block: "start" });
+  // Open on today (once), instead of days that already happened.
+  useLayoutEffect(() => {
+    if (loaded && !scrolled.current) {
+      scrolled.current = true;
+      todayRef.current?.scrollIntoView({ block: "start" });
+    }
   }, [loaded]);
 
   async function setStatus(date: string, status: "in" | "out") {
@@ -70,16 +90,18 @@ export default function WeekPage() {
     navigator.vibrate?.(10);
     setError(null);
     // Show the change right away, then save it.
-    setRsvps((prev) => [
-      ...prev.filter((r) => !(r.play_date === date && r.user_id === myId)),
-      { play_date: date, user_id: myId, status, updated_at: new Date().toISOString() },
-    ]);
-    const { error } = await supabase
-      .from("day_rsvps")
-      .upsert({ play_date: date, user_id: myId, status, updated_at: new Date().toISOString() });
-    if (error) setError(error.message);
-    else reportCourtChange(date, current === "in" && status === "out");
-    load();
+    const now = new Date().toISOString();
+    setRsvps((prev) =>
+      remember(`week:${from}`, [
+        ...prev.filter((r) => !(r.play_date === date && r.user_id === myId)),
+        { play_date: date, user_id: myId, status, updated_at: now },
+      ]),
+    );
+    const { error } = await supabase.from("day_rsvps").upsert({ play_date: date, user_id: myId, status, updated_at: now });
+    if (error) {
+      setError(error.message);
+      load(); // put the screen back the way the server has it
+    } else reportCourtChange(date, current === "in" && status === "out");
   }
 
   const everyone = Object.values(members);

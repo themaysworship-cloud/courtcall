@@ -225,3 +225,5 @@ button, .btn, .tab, .chip, .link-btn, .roster-item, .member-row { -webkit-user-s
 .topbar { position: sticky; top: 0; z-index: 5; background: rgba(244,247,242,.92); backdrop-filter: blur(10px); margin: -16px -16px 12px; padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 10px; }
 .chat-head { padding-top: calc(12px + env(safe-area-inset-top, 0px)); }
 .day { scroll-margin-top: 80px; }
+
+.msg.sending .bubble { opacity: .6; }

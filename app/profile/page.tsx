@@ -41,9 +41,14 @@ export default function ProfilePage() {
   async function uploadPhoto(file: File) {
     setBusy(true);
     setStatus("Uploading photo…");
-    const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+    // Phone photos are several MB; shrink to a small square so everyone's list loads fast.
+    const small = await shrinkPhoto(file).catch(() => null);
+    const upload = small ?? file;
+    const ext = small ? "jpg" : file.name.split(".").pop()?.toLowerCase() || "jpg";
     const path = `${auth!.user.id}/${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true, contentType: file.type });
+    const { error } = await supabase.storage
+      .from("avatars")
+      .upload(path, upload, { upsert: true, contentType: small ? "image/jpeg" : file.type, cacheControl: "31536000" });
     if (error) {
       setStatus(error.message);
       setBusy(false);
@@ -114,5 +119,20 @@ export default function ProfilePage() {
         Sign out
       </button>
     </main>
+  );
+}
+
+/** Center-crop to a square and resize to 320px JPEG (about 20–40 KB). */
+async function shrinkPhoto(file: File): Promise<Blob> {
+  const bitmap = await createImageBitmap(file);
+  const side = Math.min(bitmap.width, bitmap.height);
+  const size = Math.min(320, side);
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext("2d")!;
+  ctx.drawImage(bitmap, (bitmap.width - side) / 2, (bitmap.height - side) / 2, side, side, 0, 0, size, size);
+  bitmap.close();
+  return await new Promise<Blob>((resolve, reject) =>
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("resize failed"))), "image/jpeg", 0.85),
   );
 }

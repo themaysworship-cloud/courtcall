@@ -27,10 +27,13 @@ function Chat() {
   const myId = auth!.user.id;
   const [messages, setMessagesState] = useState<Message[]>(() => cached<Message[]>(`chat:${room}`) ?? []);
   const setMessages = (next: Message[] | ((prev: Message[]) => Message[])) =>
-    setMessagesState((prev) => remember(`chat:${room}`, typeof next === "function" ? next(prev) : next));
+    setMessagesState((prev) => {
+      const value = typeof next === "function" ? next(prev) : next;
+      remember(`chat:${room}`, value.filter((m) => m.id > 0));
+      return value;
+    });
   const [upcoming, setUpcoming] = useState<string[]>(() => cached<string[]>("chat:upcoming") ?? []); // dates I'm in for
   const [text, setText] = useState("");
-  const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -53,7 +56,13 @@ function Chat() {
         { event: "INSERT", schema: "public", table: "messages", filter: `room=eq.${room}` },
         (p) => {
           const m = p.new as Message;
-          setMessages((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m]));
+          setMessages((prev) => {
+            if (prev.some((x) => x.id === m.id)) return prev;
+            // Replace my own "sending" copy if this is the saved version of it.
+            const temp = prev.findIndex((x) => x.id < 0 && x.user_id === m.user_id && x.body === m.body);
+            if (temp >= 0) return [...prev.slice(0, temp), m, ...prev.slice(temp + 1)];
+            return [...prev, m];
+          });
         },
       )
       .on("postgres_changes", { event: "DELETE", schema: "public", table: "messages" }, (p) => {
@@ -88,21 +97,29 @@ function Chat() {
   async function send(e?: React.FormEvent) {
     e?.preventDefault();
     const body = text.trim();
-    if (!body || sending) return;
-    setSending(true);
+    if (!body) return;
     setError(null);
+    setText("");
+    inputRef.current?.focus();
+    // Show it right away; swap in the saved copy when the server answers.
+    const tempId = -Date.now();
+    const temp: Message = { id: tempId, room, user_id: myId, body, created_at: new Date().toISOString() };
+    setMessages((prev) => [...prev, temp]);
     const { data, error } = await supabase
       .from("messages")
       .insert({ room, user_id: myId, body })
       .select()
       .single();
-    if (error) setError(error.message);
-    else {
-      setText("");
-      setMessages((prev) => (prev.some((x) => x.id === data.id) ? prev : [...prev, data as Message]));
+    if (error) {
+      setError(error.message);
+      setText(body);
+      setMessages((prev) => prev.filter((x) => x.id !== tempId));
+    } else {
+      setMessages((prev) => {
+        const without = prev.filter((x) => x.id !== tempId);
+        return without.some((x) => x.id === data.id) ? without : [...without, data as Message];
+      });
     }
-    setSending(false);
-    inputRef.current?.focus();
   }
 
   async function del(m: Message) {
@@ -158,7 +175,9 @@ function Chat() {
           return (
             <div key={m.id}>
               {showDay && <div className="day-divider">{dayLabel(new Date(m.created_at))}</div>}
-              <div className={`msg ${mine ? "mine" : ""} ${startsGroup ? "first" : ""} ${endsGroup ? "last" : ""}`}>
+              <div
+                className={`msg ${mine ? "mine" : ""} ${startsGroup ? "first" : ""} ${endsGroup ? "last" : ""} ${m.id < 0 ? "sending" : ""}`}
+              >
                 {!mine && (
                   <div className="msg-avatar">
                     {endsGroup && (
@@ -197,7 +216,7 @@ function Chat() {
             }
           }}
         />
-        <button className="send" disabled={!text.trim() || sending} aria-label="Send">
+        <button className="send" disabled={!text.trim()} aria-label="Send">
           ➤
         </button>
       </form>

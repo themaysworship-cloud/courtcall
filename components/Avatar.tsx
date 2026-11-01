@@ -14,7 +14,18 @@ export function Avatar({ profile, size = 40 }: { profile?: Profile | null; size?
   const style = { width: size, height: size, fontSize: size * 0.4 };
   if (profile?.avatar_url) {
     // eslint-disable-next-line @next/next/no-img-element
-    return <img className="avatar" src={profile.avatar_url} alt={name} style={style} />;
+    return (
+      <img
+        className="avatar"
+        src={profile.avatar_url}
+        alt={name}
+        width={size}
+        height={size}
+        loading="lazy"
+        decoding="async"
+        style={{ ...style, background: color }}
+      />
+    );
   }
   return (
     <span className="avatar" style={{ ...style, background: color }} aria-label={name}>
