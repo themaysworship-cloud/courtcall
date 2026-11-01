@@ -211,8 +211,6 @@ button, .btn, .tab, .chip, .link-btn, .roster-item, .member-row { -webkit-user-s
 .btn, .inout button, .icon-btn, .send, .chip, .segmented button { transition: transform .08s ease, background-color .15s ease, color .15s ease, border-color .15s ease; }
 .btn:active, .inout button:active, .icon-btn:active, .send:active, .chip:active { transform: scale(.96); }
 .member-row:active, .roster-item:active { opacity: .6; }
-.content { animation: fadein .18s ease-out; }
-@keyframes fadein { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 .tab { transition: color .15s ease; }
 .tab svg { transition: transform .15s ease; }
 .tab.active svg { transform: translateY(-1px); stroke-width: 2.4; }
@@ -227,3 +225,23 @@ button, .btn, .tab, .chip, .link-btn, .roster-item, .member-row { -webkit-user-s
 .day { scroll-margin-top: 80px; }
 
 .msg.sending .bubble { opacity: .6; }
+
+/* Add to home screen */
+.install { max-width: 520px; margin: 0 auto; padding: calc(24px + env(safe-area-inset-top, 0px)) 18px calc(28px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 16px; min-height: 100dvh; }
+.install-head { text-align: center; }
+.install-head img { border-radius: 18px; box-shadow: 0 6px 20px rgba(31,111,74,.25); }
+.install-head h1 { font-size: 1.45rem; margin: 14px 0 6px; line-height: 1.2; }
+.install-head p { margin: 0; font-size: .95rem; line-height: 1.4; }
+.install-now { width: 100%; padding: 15px; font-size: 1.05rem; }
+.install-for { font-size: .78rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--green); margin-bottom: 10px; }
+.install-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+.install-steps li { display: flex; gap: 12px; align-items: flex-start; line-height: 1.45; font-size: 1rem; }
+.install-steps .num { flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%; background: var(--green); color: #fff; font-weight: 800; display: grid; place-items: center; font-size: .9rem; margin-top: 1px; }
+.ig-glyph { display: inline-block; width: 22px; height: 22px; vertical-align: -5px; margin: 0 2px; padding: 2px; border-radius: 6px; background: #eaf5ee; color: #0a64d8; }
+.ig-alt { display: block; margin-top: 6px; font-size: .86rem; color: var(--muted); }
+.install-note { background: #fff8e1; border-radius: 10px; padding: 10px 12px; font-size: .9rem; margin: 14px 0 0; }
+.install-card .copy { width: 100%; margin-top: 14px; }
+.install-other { text-align: center; }
+.chips-row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 8px; }
+.mini-chip { border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 7px 12px; font-size: .82rem; font-weight: 600; color: var(--text); cursor: pointer; }
+.skip { background: none; border: 0; color: var(--muted); font-size: .8rem; text-decoration: underline; margin-top: auto; padding: 10px; cursor: pointer; }

@@ -51,9 +51,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="shell">
-      <div className="content" key={pathname}>
-        {children}
-      </div>
+      <div className="content">{children}</div>
       <nav className="tabbar">
         {TABS.map((t) => {
           const active = pathname.startsWith(t.href.split("/").slice(0, 2).join("/"));

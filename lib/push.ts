@@ -28,7 +28,18 @@ function isInstalled() {
   );
 }
 
+let lastState: PushState | null = null;
+/** Last known state, so screens can render without waiting (avoids layout jumps). */
+export function knownPushState() {
+  return lastState;
+}
+
 export async function getPushState(): Promise<PushState> {
+  lastState = await computePushState();
+  return lastState;
+}
+
+async function computePushState(): Promise<PushState> {
   if (!(await getPublicKey())) return "not-configured";
   if (isIos() && !isInstalled()) return "needs-install";
   if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
@@ -61,6 +72,7 @@ export async function enablePush(userId: string): Promise<PushState> {
     auth: json.keys?.auth ?? "",
   });
   if (error) throw new Error(error.message);
+  lastState = "on";
   return "on";
 }
 
@@ -71,6 +83,7 @@ export async function disablePush(): Promise<PushState> {
     await supabase.from("push_subscriptions").delete().eq("endpoint", sub.endpoint);
     await sub.unsubscribe();
   }
+  lastState = "off";
   return "off";
 }
 

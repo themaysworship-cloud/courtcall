@@ -9,8 +9,10 @@ import type { DayRsvp } from "@/lib/types";
 import { COURT_SIZE, COURT_TIME_LABEL } from "@/lib/config";
 import { onFullCourt } from "@/lib/courts";
 import { cached, remember } from "@/lib/cache";
-import { getPushState, reportCourtChange, type PushState } from "@/lib/push";
+import { getPushState, knownPushState, reportCourtChange, type PushState } from "@/lib/push";
 import { addDays, dayLabel, rangeLabel, startOfWeek, toISODate, weekDays } from "@/lib/dates";
+
+let savedScroll: number | null = null;
 
 export default function WeekPage() {
   const { auth, members } = useAuth();
@@ -23,7 +25,7 @@ export default function WeekPage() {
   const [loaded, setLoaded] = useState(() => cached(`week:${toISODate(startOfWeek(new Date()))}`) !== undefined);
   const scrolled = useRef(false);
   const todayRef = useRef<HTMLElement>(null);
-  const [push, setPush] = useState<PushState | null>(null);
+  const [push, setPush] = useState<PushState | null>(() => knownPushState());
 
   useEffect(() => {
     getPushState().then(setPush);
@@ -75,13 +77,22 @@ export default function WeekPage() {
     };
   }, [from, to, load]);
 
-  // Open on today (once), instead of days that already happened.
+  // First visit: open on today. Coming back from another tab: return to where you were.
   useLayoutEffect(() => {
-    if (loaded && !scrolled.current) {
+    if (scrolled.current) return;
+    if (savedScroll !== null) {
+      scrolled.current = true;
+      window.scrollTo(0, savedScroll);
+    } else if (loaded) {
       scrolled.current = true;
       todayRef.current?.scrollIntoView({ block: "start" });
     }
   }, [loaded]);
+  useEffect(() => {
+    const save = () => (savedScroll = window.scrollY);
+    window.addEventListener("scroll", save, { passive: true });
+    return () => window.removeEventListener("scroll", save);
+  }, []);
 
   async function setStatus(date: string, status: "in" | "out") {
     const current = rsvps.find((r) => r.play_date === date && r.user_id === myId)?.status;
