@@ -5,12 +5,13 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useAuth } from "./AuthProvider";
 import { isConfigured } from "@/lib/supabase";
+import { ChatIcon, CourtIcon, MeIcon, PeopleIcon } from "./Icons";
 
 const TABS = [
-  { href: "/week", label: "Courts", icon: "🎾" },
-  { href: "/chat/general", label: "Chat", icon: "💬" },
-  { href: "/members", label: "Members", icon: "👥" },
-  { href: "/profile", label: "Me", icon: "🙂" },
+  { href: "/week", label: "Courts", Icon: CourtIcon },
+  { href: "/chat", label: "Chat", Icon: ChatIcon },
+  { href: "/members", label: "Members", Icon: PeopleIcon },
+  { href: "/profile", label: "Me", Icon: MeIcon },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -39,18 +40,26 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!ready || (!auth && !isLogin)) return <div className="page center muted">Loading…</div>;
+  if (!ready || (!auth && !isLogin))
+    return (
+      <div className="page center splash">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/icon-192.png" alt="" width={72} height={72} />
+      </div>
+    );
   if (isLogin) return <>{children}</>;
 
   return (
     <div className="shell">
-      <div className="content">{children}</div>
+      <div className="content" key={pathname}>
+        {children}
+      </div>
       <nav className="tabbar">
         {TABS.map((t) => {
           const active = pathname.startsWith(t.href.split("/").slice(0, 2).join("/"));
           return (
             <Link key={t.href} href={t.href} className={active ? "tab active" : "tab"}>
-              <span className="tab-icon">{t.icon}</span>
+              <t.Icon size={24} />
               <span>{t.label}</span>
             </Link>
           );

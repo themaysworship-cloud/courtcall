@@ -8,6 +8,7 @@ import { Avatar } from "@/components/Avatar";
 import type { DayRsvp } from "@/lib/types";
 import { COURT_SIZE, COURT_TIME_LABEL } from "@/lib/config";
 import { onFullCourt } from "@/lib/courts";
+import { cached, remember } from "@/lib/cache";
 import { getPushState, reportCourtChange, type PushState } from "@/lib/push";
 import { addDays, dayLabel, rangeLabel, startOfWeek, toISODate, weekDays } from "@/lib/dates";
 
@@ -15,7 +16,9 @@ export default function WeekPage() {
   const { auth, members } = useAuth();
   const myId = auth!.user.id;
   const [sunday, setSunday] = useState(() => startOfWeek(new Date()));
-  const [rsvps, setRsvps] = useState<DayRsvp[]>([]);
+  const [rsvps, setRsvps] = useState<DayRsvp[]>(
+    () => cached<DayRsvp[]>(`week:${toISODate(startOfWeek(new Date()))}`) ?? [],
+  );
   const [error, setError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const todayRef = useRef<HTMLElement>(null);
@@ -38,11 +41,13 @@ export default function WeekPage() {
       .lte("play_date", to)
       .order("updated_at");
     if (error) setError(error.message);
-    setRsvps((data ?? []) as DayRsvp[]);
+    if (!error) setRsvps(remember(`week:${toISODate(sunday)}`, (data ?? []) as DayRsvp[]));
     setLoaded(true);
-  }, [from, to]);
+  }, [from, to, sunday]);
 
   useEffect(() => {
+    const hit = cached<DayRsvp[]>(`week:${toISODate(sunday)}`);
+    if (hit) setRsvps(hit);
     load();
     const ch = supabase
       .channel(`rsvps-${from}`)
@@ -51,7 +56,7 @@ export default function WeekPage() {
     return () => {
       supabase.removeChannel(ch);
     };
-  }, [from, load]);
+  }, [from, load, sunday]);
 
   // Open on today instead of days that already happened.
   useEffect(() => {
@@ -62,6 +67,7 @@ export default function WeekPage() {
     const current = rsvps.find((r) => r.play_date === date && r.user_id === myId)?.status;
     // Tapping the same answer again must not move you to the back of the line.
     if (current === status) return;
+    navigator.vibrate?.(10);
     setError(null);
     // Show the change right away, then save it.
     setRsvps((prev) => [
@@ -196,7 +202,7 @@ export default function WeekPage() {
               )}
 
               <div className="day-foot">
-                <Link className="link-btn" href={`/chat/day-${iso}`}>
+                <Link className="link-btn" href={`/chat?room=day-${iso}`}>
                   💬 Chat about this day
                 </Link>
               </div>
