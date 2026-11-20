@@ -23,6 +23,7 @@ export type Signup = { session_id: string; user_id: string; created_at: string }
 
 export type Message = {
   id: number;
+  group_id?: string;
   room: string;
   user_id: string;
   body: string;
@@ -33,8 +34,28 @@ export type Message = {
 export type Reaction = { message_id: number; user_id: string; emoji: string };
 
 export type DayRsvp = {
+  group_id?: string;
   play_date: string; // YYYY-MM-DD
   user_id: string;
   status: "in" | "out";
+  updated_at: string;
+};
+
+export type Group = {
+  id: string;
+  slug: string | null;
+  name: string;
+  invite_code: string;
+  has_ryvl: boolean;
+  created_by: string | null;
+};
+
+export type RyvlLevel = "3.0-3.5" | "3.5-4.0";
+
+export type RyvlSignup = {
+  group_id: string;
+  play_date: string;
+  user_id: string;
+  level: RyvlLevel;
   updated_at: string;
 };

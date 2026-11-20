@@ -5,17 +5,19 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useAuth } from "./AuthProvider";
 import { isConfigured } from "@/lib/supabase";
-import { ChatIcon, CourtIcon, MeIcon, PeopleIcon } from "./Icons";
+import { ChatIcon, CourtIcon, MeIcon, PeopleIcon, TrophyIcon } from "./Icons";
+import { JoinScreen } from "./Groups";
 
 const TABS = [
   { href: "/week", label: "Courts", Icon: CourtIcon },
+  { href: "/ryvl", label: "RYVL", Icon: TrophyIcon, ryvl: true },
   { href: "/chat", label: "Chat", Icon: ChatIcon },
   { href: "/members", label: "Members", Icon: PeopleIcon },
   { href: "/profile", label: "Me", Icon: MeIcon },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { ready, auth } = useAuth();
+  const { ready, auth, group, groups, groupsLoaded } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const isLogin = pathname === "/login";
@@ -23,7 +25,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!ready || !isConfigured) return;
     if (!auth && !isLogin) router.replace("/login");
-    if (auth && (isLogin || pathname === "/")) router.replace("/week");
+    if (auth && (isLogin || pathname === "/" || pathname.startsWith("/join"))) router.replace("/week");
+    if (auth && pathname.startsWith("/ryvl") && group && !group.has_ryvl) router.replace("/week");
   }, [ready, auth, isLogin, pathname, router]);
 
   if (!isConfigured) {
@@ -48,12 +51,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
     );
   if (isLogin) return <>{children}</>;
+  if (groupsLoaded && groups.length === 0) return <JoinScreen />;
 
   return (
     <div className="shell">
       <div className="content">{children}</div>
       <nav className="tabbar">
-        {TABS.map((t) => {
+        {TABS.filter((t) => !t.ryvl || group?.has_ryvl).map((t) => {
           const active = pathname.startsWith(t.href.split("/").slice(0, 2).join("/"));
           return (
             <Link key={t.href} href={t.href} className={active ? "tab active" : "tab"}>
