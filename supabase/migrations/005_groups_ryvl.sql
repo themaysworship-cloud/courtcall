@@ -254,3 +254,13 @@ do $$
 begin
   begin alter publication supabase_realtime add table public.ryvl_signups; exception when duplicate_object then null; end;
 end $$;
+
+-- Who has already been told they made a RYVL court, so nobody gets the same alert twice (server only).
+create table if not exists public.ryvl_notices (
+  group_id uuid not null references public.groups(id) on delete cascade,
+  play_date date not null,
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (group_id, play_date, user_id)
+);
+alter table public.ryvl_notices enable row level security;

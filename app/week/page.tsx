@@ -5,6 +5,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/AuthProvider";
 import { Avatar } from "@/components/Avatar";
+import { GroupSwitcher } from "@/components/Groups";
 import type { DayRsvp } from "@/lib/types";
 import { COURT_SIZE, COURT_TIME_LABEL } from "@/lib/config";
 import { onFullCourt } from "@/lib/courts";
@@ -15,14 +16,15 @@ import { addDays, dayLabel, rangeLabel, startOfWeek, toISODate, weekDays } from 
 let savedScroll: number | null = null;
 
 export default function WeekPage() {
-  const { auth, members } = useAuth();
+  const { auth, members, group } = useAuth();
   const myId = auth!.user.id;
+  const gid = group?.id ?? "";
   const [sunday, setSunday] = useState(() => startOfWeek(new Date()));
   const [rsvps, setRsvps] = useState<DayRsvp[]>(
-    () => cached<DayRsvp[]>(`week:${toISODate(startOfWeek(new Date()))}`) ?? [],
+    () => cached<DayRsvp[]>(`week:${gid}:${toISODate(startOfWeek(new Date()))}`) ?? [],
   );
   const [error, setError] = useState<string | null>(null);
-  const [loaded, setLoaded] = useState(() => cached(`week:${toISODate(startOfWeek(new Date()))}`) !== undefined);
+  const [loaded, setLoaded] = useState(() => cached(`week:${gid}:${toISODate(startOfWeek(new Date()))}`) !== undefined);
   const scrolled = useRef(false);
   const todayRef = useRef<HTMLElement>(null);
   const [push, setPush] = useState<PushState | null>(() => knownPushState());
@@ -36,32 +38,37 @@ export default function WeekPage() {
   const to = toISODate(days[days.length - 1]);
   const today = toISODate(new Date());
 
+  const key = `week:${gid}:${from}`;
   const load = useCallback(async () => {
+    if (!gid) return;
     const { data, error } = await supabase
       .from("day_rsvps")
       .select("*")
+      .eq("group_id", gid)
       .gte("play_date", from)
       .lte("play_date", to)
       .order("updated_at");
     if (error) setError(error.message);
-    if (!error) setRsvps(remember(`week:${from}`, (data ?? []) as DayRsvp[]));
+    if (!error) setRsvps(remember(key, (data ?? []) as DayRsvp[]));
     setLoaded(true);
-  }, [from, to]);
+  }, [gid, key, from, to]);
 
   useEffect(() => {
-    setRsvps(cached<DayRsvp[]>(`week:${from}`) ?? []);
+    if (!gid) return;
+    setRsvps(cached<DayRsvp[]>(key) ?? []);
     load();
     // Apply other people's taps as they happen, without reloading the whole week.
     const ch = supabase
-      .channel(`rsvps-${from}`)
+      .channel(`rsvps-${gid}-${from}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "day_rsvps" }, (p) => {
         const row = (p.eventType === "DELETE" ? p.old : p.new) as DayRsvp;
         if (!row?.play_date || row.play_date < from || row.play_date > to) return;
+        if (row.group_id && row.group_id !== gid) return;
         setRsvps((prev) => {
           const rest = prev.filter((r) => !(r.play_date === row.play_date && r.user_id === row.user_id));
           const next = p.eventType === "DELETE" ? rest : [...rest, row];
           next.sort((a, b) => a.updated_at.localeCompare(b.updated_at));
-          return remember(`week:${from}`, next);
+          return remember(key, next);
         });
       })
       .subscribe((status) => {
@@ -75,7 +82,7 @@ export default function WeekPage() {
       document.removeEventListener("visibilitychange", onShow);
       supabase.removeChannel(ch);
     };
-  }, [from, to, load]);
+  }, [gid, key, from, to, load]);
 
   // First visit: open on today. Coming back from another tab: return to where you were.
   useLayoutEffect(() => {
@@ -103,16 +110,18 @@ export default function WeekPage() {
     // Show the change right away, then save it.
     const now = new Date().toISOString();
     setRsvps((prev) =>
-      remember(`week:${from}`, [
+      remember(key, [
         ...prev.filter((r) => !(r.play_date === date && r.user_id === myId)),
-        { play_date: date, user_id: myId, status, updated_at: now },
+        { group_id: gid, play_date: date, user_id: myId, status, updated_at: now },
       ]),
     );
-    const { error } = await supabase.from("day_rsvps").upsert({ play_date: date, user_id: myId, status, updated_at: now });
+    const { error } = await supabase
+      .from("day_rsvps")
+      .upsert({ group_id: gid, play_date: date, user_id: myId, status, updated_at: now }, { onConflict: "group_id,play_date,user_id" });
     if (error) {
       setError(error.message);
       load(); // put the screen back the way the server has it
-    } else reportCourtChange(date, current === "in" && status === "out");
+    } else reportCourtChange(gid, date, current === "in" && status === "out");
   }
 
   const everyone = Object.values(members);
@@ -126,7 +135,8 @@ export default function WeekPage() {
         </button>
         <div className="topbar-title">
           <h1>Courts</h1>
-          <span className="muted">
+          <GroupSwitcher />
+          <span className="muted block">
             {rangeLabel(days[0], days[days.length - 1])} · {COURT_TIME_LABEL}
           </span>
         </div>

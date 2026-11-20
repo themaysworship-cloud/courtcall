@@ -6,6 +6,8 @@ import { useAuth } from "@/components/AuthProvider";
 import { Avatar } from "@/components/Avatar";
 import type { Profile } from "@/lib/types";
 import { digitsOnly, formatPhone } from "@/lib/phone";
+import { GroupSwitcher } from "@/components/Groups";
+import { inviteLink } from "@/lib/invite";
 
 export default function MembersPage() {
   return (
@@ -40,7 +42,8 @@ function Members() {
       <header className="topbar">
         <div className="topbar-title">
           <h1>Members</h1>
-          <span className="muted">{Object.keys(members).length} in the group</span>
+          <GroupSwitcher />
+          <span className="muted block">{Object.keys(members).length} members</span>
         </div>
         <InviteButton />
       </header>
@@ -104,12 +107,15 @@ function ContactButtons({ profile, compact }: { profile: Profile; compact?: bool
 }
 
 function InviteButton() {
+  const { group } = useAuth();
   const [copied, setCopied] = useState(false);
+  if (!group) return null;
   async function invite() {
-    const url = window.location.origin;
+    if (!group) return;
+    const url = inviteLink(group.invite_code);
     const text =
-      "Join our pickleball group on Court Call! Sign up for the 5–7am courts and chat with everyone. " +
-      "Open this link on your phone and it'll walk you through adding it to your home screen:";
+      `Join ${group.name} on Court Call! Sign up for the 5–7am courts and chat with everyone. ` +
+      `Your invite code is ${group.invite_code}. Open this link on your phone and it'll walk you through adding it to your home screen:`;
     if (navigator.share) {
       try {
         await navigator.share({ title: "Court Call", text, url });

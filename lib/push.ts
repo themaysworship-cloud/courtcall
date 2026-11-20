@@ -88,14 +88,26 @@ export async function disablePush(): Promise<PushState> {
 }
 
 /** Let the server check whether anyone moved onto (or off) a full court, and notify them. */
-export async function reportCourtChange(date: string, dropped = false) {
+export async function reportCourtChange(groupId: string, date: string, dropped = false) {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
   if (!token) return;
   fetch("/api/court-update", {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ date, dropped }),
+    body: JSON.stringify({ groupId, date, dropped }),
+  }).catch(() => {});
+}
+
+/** Tell the server someone changed their RYVL sign-up so it can alert people who made (or lost) a court. */
+export async function reportRyvlChange(groupId: string, date: string) {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) return;
+  fetch("/api/court-update", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ groupId, date, ryvl: true }),
   }).catch(() => {});
 }
 

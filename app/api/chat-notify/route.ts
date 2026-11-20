@@ -24,16 +24,23 @@ export async function POST(req: Request) {
   }
 
   const room = msg.room as string;
-  const { data: people } = await admin.from("profiles").select("id, full_name, chat_alerts");
+  const gid = msg.group_id as string;
+  const [{ data: inGroup }, { data: groupRow }] = await Promise.all([
+    admin.from("group_members").select("user_id").eq("group_id", gid),
+    admin.from("groups").select("name").eq("id", gid).single(),
+  ]);
+  const memberIds = (inGroup ?? []).map((r) => r.user_id as string);
+  const { data: people } = await admin.from("profiles").select("id, full_name, chat_alerts").in("id", memberIds);
+  const groupName = (groupRow?.name as string | undefined) ?? "Group chat";
   const author = (people ?? []).find((p) => p.id === actor);
   let recipients = (people ?? []).filter((p) => p.id !== actor && p.chat_alerts !== false).map((p) => p.id as string);
 
-  let where = "Group chat";
+  let where = groupName;
   if (room.startsWith("day-")) {
     const date = room.slice(4);
     const [{ data: ins }, { data: posters }] = await Promise.all([
-      admin.from("day_rsvps").select("user_id").eq("play_date", date).eq("status", "in"),
-      admin.from("messages").select("user_id").eq("room", room),
+      admin.from("day_rsvps").select("user_id").eq("group_id", gid).eq("play_date", date).eq("status", "in"),
+      admin.from("messages").select("user_id").eq("group_id", gid).eq("room", room),
     ]);
     const involved = new Set([...(ins ?? []), ...(posters ?? [])].map((r) => r.user_id as string));
     recipients = recipients.filter((r) => involved.has(r));
@@ -54,8 +61,8 @@ export async function POST(req: Request) {
       user_id,
       title: `${name} · ${where}`,
       body: body.length > 140 ? body.slice(0, 137) + "…" : body,
-      tag: `chat-${room}`,
-      url: `/chat?room=${encodeURIComponent(room)}`,
+      tag: `chat-${gid}-${room}`,
+      url: `/chat?room=${encodeURIComponent(room)}&g=${gid}`,
     })),
   );
   return NextResponse.json({ sent });

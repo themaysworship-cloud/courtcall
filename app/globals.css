@@ -297,3 +297,4 @@ button, .btn, .tab, .chip, .link-btn, .roster-item, .member-row { -webkit-user-s
 .ryvl-level { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
 .ryvl-level h3 { font-size: .95rem; margin: 0 0 4px; }
 .ryvl-intro { margin-bottom: 4px; }
+.block { display: block; }

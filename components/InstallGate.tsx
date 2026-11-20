@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { inviteFromPath, savePendingInvite } from "@/lib/invite";
 
 /**
  * On phones, Court Call has to be opened from the home screen (so notifications and sign-in work like a real app).
@@ -324,6 +325,7 @@ function InstallScreen({
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/icon-192.png" alt="" width={76} height={76} />
         <h1>Add Court Call to your home screen</h1>
+        <InviteCodeNote />
         <p className="muted">
           It takes about 20 seconds. Court Call then opens like a regular app, stays signed in, and can send you court
           alerts.
@@ -378,5 +380,23 @@ function InstallScreen({
         Having trouble? Continue in the browser for now
       </button>
     </main>
+  );
+}
+
+/** Opened from a group invite link: show the code, since the home screen app may not see this browser's data. */
+function InviteCodeNote() {
+  const [code, setCode] = useState<string | null>(null);
+  useEffect(() => {
+    const c = inviteFromPath(window.location.pathname);
+    if (c) {
+      savePendingInvite(c);
+      setCode(c);
+    }
+  }, []);
+  if (!code) return null;
+  return (
+    <p className="install-code">
+      Your group invite code is <b>{code}</b>. Write it down. After you add the app and sign in, it may ask for it once.
+    </p>
   );
 }

@@ -7,6 +7,7 @@ import { cached, remember } from "@/lib/cache";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/AuthProvider";
 import { Avatar } from "@/components/Avatar";
+import { GroupSwitcher } from "@/components/Groups";
 import type { Message, Reaction } from "@/lib/types";
 import { reportChatMessage } from "@/lib/push";
 import { shrinkImage } from "@/lib/image";
@@ -27,16 +28,18 @@ export default function ChatPage() {
 
 function Chat() {
   const room = useSearchParams().get("room") || "general";
-  const { auth, members } = useAuth();
+  const { auth, members, group } = useAuth();
   const myId = auth!.user.id;
-  const [messages, setMessagesState] = useState<Message[]>(() => cached<Message[]>(`chat:${room}`) ?? []);
+  const gid = group?.id ?? "";
+  const ck = `chat:${gid}:${room}`;
+  const [messages, setMessagesState] = useState<Message[]>(() => cached<Message[]>(ck) ?? []);
   const setMessages = (next: Message[] | ((prev: Message[]) => Message[])) =>
     setMessagesState((prev) => {
       const value = typeof next === "function" ? next(prev) : next;
-      remember(`chat:${room}`, value.filter((m) => m.id > 0));
+      remember(ck, value.filter((m) => m.id > 0));
       return value;
     });
-  const [upcoming, setUpcoming] = useState<string[]>(() => cached<string[]>("chat:upcoming") ?? []); // dates I'm in for
+  const [upcoming, setUpcoming] = useState<string[]>(() => cached<string[]>(`chat:upcoming:${gid}`) ?? []); // dates I'm in for
   const [text, setText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [reactions, setReactions] = useState<Reaction[]>([]);
@@ -48,11 +51,13 @@ function Chat() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
+    if (!gid) return;
     let alive = true;
-    setMessagesState(cached<Message[]>(`chat:${room}`) ?? []);
+    setMessagesState(cached<Message[]>(ck) ?? []);
     supabase
       .from("messages")
       .select("*")
+      .eq("group_id", gid)
       .eq("room", room)
       .order("created_at", { ascending: false })
       .limit(200)
@@ -73,12 +78,13 @@ function Chat() {
       });
 
     const ch = supabase
-      .channel(`room-${room}`)
+      .channel(`room-${gid}-${room}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "messages", filter: `room=eq.${room}` },
         (p) => {
           const m = p.new as Message;
+          if (m.group_id && m.group_id !== gid) return;
           setMessages((prev) => {
             if (prev.some((x) => x.id === m.id)) return prev;
             // Replace my own "sending" copy if this is the saved version of it.
@@ -106,19 +112,21 @@ function Chat() {
       supabase
         .from("day_rsvps")
         .select("play_date")
+        .eq("group_id", gid)
         .eq("user_id", myId)
         .eq("status", "in")
         .gte("play_date", toISODate(new Date()))
         .order("play_date")
         .limit(6)
-        .then(({ data }) => alive && setUpcoming(remember("chat:upcoming", (data ?? []).map((r) => r.play_date as string))));
+        .then(({ data }) => alive && setUpcoming(remember(`chat:upcoming:${gid}`, (data ?? []).map((r) => r.play_date as string))));
     }
 
     return () => {
       alive = false;
       supabase.removeChannel(ch);
     };
-  }, [room, myId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [room, myId, gid]);
 
   useLayoutEffect(() => {
     endRef.current?.scrollIntoView({ block: "end" });
@@ -134,7 +142,7 @@ function Chat() {
     // Show it right away; swap in the saved copy when the server answers.
     const tempId = -Date.now();
     const preview = photo ? URL.createObjectURL(photo) : null;
-    const temp: Message = { id: tempId, room, user_id: myId, body, image_url: preview, created_at: new Date().toISOString() };
+    const temp: Message = { id: tempId, group_id: gid, room, user_id: myId, body, image_url: preview, created_at: new Date().toISOString() };
     setMessages((prev) => [...prev, temp]);
     let image_url: string | null = null;
     if (photo) {
@@ -152,7 +160,7 @@ function Chat() {
     }
     const { data, error } = await supabase
       .from("messages")
-      .insert({ room, user_id: myId, body, ...(image_url ? { image_url } : {}) })
+      .insert({ group_id: gid, room, user_id: myId, body, ...(image_url ? { image_url } : {}) })
       .select()
       .single();
     if (error) {
@@ -217,7 +225,7 @@ function Chat() {
         <div>
           <h1>{title}</h1>
           {dayDate && <span className="muted small">{COURT_TIME_LABEL} court chat</span>}
-          {room === "general" && <span className="muted small">Everyone in the group</span>}
+          {room === "general" && <GroupSwitcher />}
         </div>
       </header>
 
